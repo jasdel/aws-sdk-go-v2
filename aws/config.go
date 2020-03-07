@@ -34,7 +34,8 @@ type Config struct {
 	// Retryer guides how HTTP requests should be retried in case of
 	// recoverable failures. When nil the API client will use a default
 	// retryer.
-	Retryer Retryer
+	Retryer            Retryer
+	AttemptRateLimiter AttemptRateLimiter
 
 	// An integer value representing the logging level. The default log level
 	// is zero (LogOff), which represents no logging. To enable logging set

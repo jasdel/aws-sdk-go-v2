@@ -556,6 +556,10 @@ func (r *Request) Send() error {
 	// consider the difference between API, connection, and SDK behavior
 	// errors. This consideration must include wrapping of underlying error
 	// when any SDK error occurs.
+	attemptRateLimiter := r.Config.AttemptRateLimiter
+	if attemptRateLimiter == nil {
+		attemptRateLimiter = NopAttemptRateLimit{}
+	}
 
 	relRetryToken := r.Retryer.GetInitialToken()
 	for {
@@ -565,14 +569,21 @@ func (r *Request) Send() error {
 		r.AttemptTime = sdk.NowTime()
 		r.AttemptNum++
 
-		var err error
-		if err = r.Sign(); err != nil {
+		relAttemptToken, err := attemptRateLimiter.GetAttemptToken(r.Context())
+		if err != nil {
+			debugLogReqError(r, "Attempt Rate Limiter", notRetrying, err)
+			r.Error = err
+			return err
+		}
+
+		if err := r.Sign(); err != nil {
 			debugLogReqError(r, "Sign Request", notRetrying, err)
 			r.Error = err
 			return err
 		}
 
 		reqErr := r.sendRequest()
+		relAttemptToken(reqErr)
 		relRetryToken(reqErr)
 		if reqErr == nil {
 			return nil
