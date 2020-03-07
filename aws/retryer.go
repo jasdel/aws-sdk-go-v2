@@ -60,3 +60,17 @@ func (NoOpRetryer) GetInitialToken() func(error) error {
 }
 
 func nopReleaseToken(error) error { return nil }
+
+// AttemptRateLimiter provides the interface for limiting the rate at which
+// requests attempts are made.
+type AttemptRateLimiter interface {
+	GetAttemptToken(ctx context.Context) (releaseToken func(error) error, err error)
+}
+
+// NopAttemptRateLimit provides a AttemptRateLimiter implementation that does nothing.
+type NopAttemptRateLimit struct{}
+
+// GetAttemptToken returns a stub function that does nothing.
+func (NopAttemptRateLimit) GetAttemptToken(context.Context) (func(error) error, error) {
+	return nopReleaseToken, nil
+}
